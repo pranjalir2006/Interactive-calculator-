@@ -1,1 +1,203 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import math
 
+
+# ---------------- CALCULATOR ----------------
+
+def calculate():
+    try:
+        expression = calc_entry.get()
+
+        # Allow only basic mathematical operations
+        allowed = set("0123456789+-*/().% ")
+
+        if not expression or not all(c in allowed for c in expression):
+            raise ValueError("Invalid mathematical expression")
+
+        result = eval(expression, {"__builtins__": {}}, {})
+
+        result_label.config(text=f"Result: {result}")
+
+    except ZeroDivisionError:
+        messagebox.showerror("Error", "Cannot divide by zero!")
+    except Exception:
+        messagebox.showerror("Error", "Please enter a valid expression!")
+
+
+def clear_calculator():
+    calc_entry.delete(0, tk.END)
+    result_label.config(text="Result: ")
+
+
+# ---------------- UNIT CONVERTER ----------------
+
+conversion_factors = {
+    "Length": {
+        "Meter": 1,
+        "Kilometer": 1000,
+        "Centimeter": 0.01,
+        "Millimeter": 0.001,
+        "Mile": 1609.344,
+        "Foot": 0.3048,
+        "Inch": 0.0254
+    },
+    "Weight": {
+        "Kilogram": 1,
+        "Gram": 0.001,
+        "Milligram": 0.000001,
+        "Pound": 0.45359237,
+        "Ounce": 0.028349523125
+    },
+    "Time": {
+        "Second": 1,
+        "Minute": 60,
+        "Hour": 3600,
+        "Day": 86400
+    }
+}
+
+
+def update_units(event=None):
+    category = category_box.get()
+
+    if category == "Temperature":
+        units = ["Celsius", "Fahrenheit", "Kelvin"]
+    else:
+        units = list(conversion_factors[category].keys())
+
+    from_box["values"] = units
+    to_box["values"] = units
+
+    from_box.current(0)
+    to_box.current(min(1, len(units) - 1))
+
+
+def convert_units():
+    try:
+        value = float(value_entry.get())
+        category = category_box.get()
+        from_unit = from_box.get()
+        to_unit = to_box.get()
+
+        if not from_unit or not to_unit:
+            raise ValueError("Please select both units.")
+
+        if category == "Temperature":
+            # Convert the input to Celsius first
+            if from_unit == "Celsius":
+                celsius = value
+            elif from_unit == "Fahrenheit":
+                celsius = (value - 32) * 5 / 9
+            else:
+                celsius = value - 273.15
+
+            # Convert Celsius to the target unit
+            if to_unit == "Celsius":
+                result = celsius
+            elif to_unit == "Fahrenheit":
+                result = celsius * 9 / 5 + 32
+            else:
+                result = celsius + 273.15
+
+        else:
+            factors = conversion_factors[category]
+            result = value * factors[from_unit] / factors[to_unit]
+
+        result_text.config(text=f"Result: {result:.6g} {to_unit}")
+
+    except ValueError:
+        messagebox.showerror(
+            "Error",
+            "Please enter a valid number and select the units."
+        )
+
+
+# ---------------- MAIN WINDOW ----------------
+
+root = tk.Tk()
+root.title("Interactive Calculator & Unit Converter")
+root.geometry("500x620")
+root.resizable(False, False)
+
+title = tk.Label(
+    root,
+    text="Interactive Calculator",
+    font=("Arial", 20, "bold")
+)
+title.pack(pady=12)
+
+# Calculator section
+calc_frame = ttk.LabelFrame(root, text="Calculator", padding=15)
+calc_frame.pack(fill="x", padx=20, pady=10)
+
+calc_entry = ttk.Entry(calc_frame, font=("Arial", 14), width=35)
+calc_entry.pack(pady=8)
+
+ttk.Button(
+    calc_frame,
+    text="Calculate",
+    command=calculate
+).pack(pady=4)
+
+ttk.Button(
+    calc_frame,
+    text="Clear",
+    command=clear_calculator
+).pack(pady=4)
+
+result_label = tk.Label(
+    calc_frame,
+    text="Result: ",
+    font=("Arial", 13, "bold")
+)
+result_label.pack(pady=8)
+
+# Unit converter section
+unit_frame = ttk.LabelFrame(root, text="Unit Converter", padding=15)
+unit_frame.pack(fill="x", padx=20, pady=10)
+
+ttk.Label(unit_frame, text="Category:").pack(anchor="w")
+
+category_box = ttk.Combobox(
+    unit_frame,
+    values=["Length", "Weight", "Temperature", "Time"],
+    state="readonly"
+)
+category_box.pack(fill="x", pady=5)
+category_box.current(0)
+
+ttk.Label(unit_frame, text="Value:").pack(anchor="w")
+
+value_entry = ttk.Entry(unit_frame)
+value_entry.pack(fill="x", pady=5)
+
+ttk.Label(unit_frame, text="From:").pack(anchor="w")
+
+from_box = ttk.Combobox(unit_frame, state="readonly")
+from_box.pack(fill="x", pady=5)
+
+ttk.Label(unit_frame, text="To:").pack(anchor="w")
+
+to_box = ttk.Combobox(unit_frame, state="readonly")
+to_box.pack(fill="x", pady=5)
+
+category_box.bind("<<ComboboxSelected>>", update_units)
+
+ttk.Button(
+    unit_frame,
+    text="Convert",
+    command=convert_units
+).pack(pady=10)
+
+result_text = tk.Label(
+    unit_frame,
+    text="Result: ",
+    font=("Arial", 12, "bold")
+)
+result_text.pack(pady=5)
+
+# Initialize the unit lists
+update_units()
+
+root.mainloop()
